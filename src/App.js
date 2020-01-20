@@ -6,6 +6,8 @@ import Main from './component/Main';
 import Footer from './component/Footer';
 import axios from 'axios';
 import { format } from 'date-fns';
+import {getWeather} from './util/axios';
+
 //import CircularProgress from '@material-ui/core/CircularProgress';
 
 class App extends React.Component {
@@ -16,17 +18,17 @@ class App extends React.Component {
        forecast:[],
        showLimit:5,
        unit:'C',
-       city:'Brisbane'
+       city:'Brisbane',
+       searchValue:'',
     };
   }
- componentDidMount() {
-    axios.get(`https://jr-weather-api.herokuapp.com/api/weather?cc=Australia&city=${this.state.city}`)
-      .then(response => {
-        this.showTemperature(response);
-      })
-      .catch(error => {
-        alert("city name is not in Australia or invalid")
-      });
+ async componentDidMount() {
+   try {
+      const response = await getWeather(this.state.city);
+      this.showTemperature(response);
+   } catch(error) {
+     alert("city name is not in Australia or invalid");
+   }
   }
 
  showTemperature = (response) => {
@@ -43,7 +45,6 @@ class App extends React.Component {
                 newTime
             }
     })
-    //this.setState({forecast,current});
     this.setState (state => ({
       forecast,
       current
@@ -71,29 +72,32 @@ class App extends React.Component {
    document.querySelector('.temp-switch').innerHTML = 
         "<i class='fa fa-thermometer-empty' aria-hidden='true'></i><sup>&deg;</sup>" + unit;
  }
+showSearchValue= (e) => {
+  const value = e.target.value;
+  if (this.state.city === value) return;
+  this.setState({
+    searchValue:value,
+  });
+}
 
- searchCity = () => {
-    if (this.state.city === document.querySelector('.search-input').value) return;
-    this.getInputCity();
- }
+ getInputCity = async() => {
+    if (this.state.city === this.state.searchValue) return;
+    const city = this.state.searchValue;
+    try {
+          const response = await getWeather(city);
+          this.showTemperature(response);
+        } catch(error) {
+          alert("city name is not in Australia or invalid");
+          return;
+        }
+        this.setState({city});
+  }
 
- enterCity = (e) => {
-    if(e.key === "Enter") {
-      this.getInputCity();
-    }
- }
-
- getInputCity() {
-  const city = document.querySelector('.search-input').value;
-      this.setState({city:city}, ()=>{
-        this.componentDidMount();
-    })
- }
   render() {
     return (
       <div className="weather-channel__container">
         <Header />
-        <Navitation enterCity = {this.enterCity} searchCity = {this.searchCity} selectUnit = {this.selectUnit} />
+        <Navitation searchValue = {this.state.searchValue} showSearchValue = {this.showSearchValue} searchCity = {this.getInputCity} selectUnit = {this.selectUnit} />
         <Main city = {this.state.city} unit = {this.state.unit} selectShow = {this.selectShow} forecast = {this.state.forecast} current = {this.state.current}/>
         <Footer />
       </div>
